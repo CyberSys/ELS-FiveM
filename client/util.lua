@@ -665,7 +665,7 @@ Citizen.CreateThread(function()
                 isVehicleELS = vehInTable(els_Vehicles, checkCarHash(current_vehicle))
             end
             if isVehicleELS then
-                if GetPedInVehicleSeat(current_vehicle, -1) == ped or GetPedInVehicleSeat(current_vehicle, 0) == ped then
+                if GetPedInVehicleSeat(current_vehicle, -1) == current_ped or GetPedInVehicleSeat(current_vehicle, 0) == current_ped then
                     canControlELS = true
                 end
                 debugPrint('isVehicleELS = ' .. tostring(isVehicleELS), false, true)
@@ -683,7 +683,7 @@ end)
 
 Citizen.CreateThread(function()
     while true do
-        ped = PlayerPedId()
+        current_ped = PlayerPedId()
         current_vehicle = GetVehiclePedIsIn(ped, false)
         Citizen.Wait(500)
     end
