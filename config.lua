@@ -1,5 +1,5 @@
 outputLoading = GetConvar("els_outputLoading", "false") == "true"
-playButtonPressSounds = true
+playButtonPressSounds = GetConvar("els_playButtonSounds", "true") == "true"
 printDebugInformation = GetConvar("els_debug", "false") == "true"
 
 --[[
@@ -15,10 +15,10 @@ printDebugInformation = GetConvar("els_debug", "false") == "true"
 ]]
 developerMode = GetConvar("els_developer", "false") == "true"
 
-vehicleSyncDistance = 150
-envirementLightBrightness = 0.006
-lightDelay = 10 -- Time in MS
-flashDelay = 15
+vehicleSyncDistance = GetConvarInt("els_syncDistance", 150)
+envirementLightBrightness = GetConvarInt("els_envLightBrightness", 0.006)
+lightDelay = GetConvarInt("els_lightDelay", 10) -- Time in MS
+flashDelay = GetConvarInt("els_flashDelay", 15)
 
 panelEnabled = true
 panelType = "original"
