@@ -684,7 +684,7 @@ end)
 Citizen.CreateThread(function()
     while true do
         current_ped = PlayerPedId()
-        current_vehicle = GetVehiclePedIsIn(ped, false)
+        current_vehicle = GetVehiclePedIsIn(current_ped, false)
         Citizen.Wait(500)
     end
 end)
