@@ -36,11 +36,11 @@ Citizen.CreateThread(function()
 
     while true do
 
-        if developerMode then
+        if GetConvar("els_developer", "false") == "true" then
 
             -- a temporary condition for split session handling
             if not NetworkIsSessionActive() then
-                print("Not in network session, shit will significantly fuck up, so we're preventing you from using ELS.")
+                error("Not in network session, shit will significantly fuck up, so we're preventing you from using ELS.")
                 return
             end
         end
