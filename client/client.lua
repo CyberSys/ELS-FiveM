@@ -594,7 +594,7 @@ Citizen.CreateThread(function()
     while true do
         for k,v in pairs(elsVehs) do
             if(v ~= nil or DoesEntityExist(k)) then
-                if (GetDistanceBetweenCoords(GetEntityCoords(k, true), GetEntityCoords(current_ped, true), true) <= vehicleSyncDistance) then
+                if (#(GetEntityCoords(k, true) - GetEntityCoords(current_ped, true)) <= vehicleSyncDistance) then
                     if elsVehs[k].warning or elsVehs[k].secondary or elsVehs[k].primary then
                         SetVehicleEngineOn(k, true, true, false)
                     end
@@ -644,7 +644,7 @@ Citizen.CreateThread(function()
 
     while true do
         for k,v in pairs(elsVehs) do
-            if (v ~= nil and DoesEntityExist(k) and GetDistanceBetweenCoords(GetEntityCoords(k, true), GetEntityCoords(current_ped, true), true) <= vehicleSyncDistance) then
+            if (v ~= nil and DoesEntityExist(k) and #(GetEntityCoords(k, true) - GetEntityCoords(current_ped, true) <= vehicleSyncDistance)) then
                 SetVehicleAutoRepairDisabled(k, true)
 
                 if #getVehicleVCFInfo(k) == 0 then
