@@ -18,7 +18,7 @@ AddEventHandler("els:changeLightStage_c", function(sender, stage, advisor, prim,
             if DoesEntityExist(ped_s) and not IsEntityDead(ped_s) then
                 if IsPedInAnyVehicle(ped_s, false) then
 
-                    local vehNetID = GetVehiclePedIsUsing(ped_s)
+                    local vehNetID = getVehicleNetworkId(ped_s)
 
                     if elsVehs[vehNetID] ~= nil then
                         elsVehs[vehNetID].stage = stage
@@ -204,8 +204,13 @@ AddEventHandler("els:setHornState_c", function(sender, newstate)
     if player_s ~= -1 then 
         if DoesEntityExist(ped_s) and not IsEntityDead(ped_s) then
             if IsPedInAnyVehicle(ped_s, false) then
-                local veh = GetVehiclePedIsUsing(ped_s)
-                setHornState(veh, newstate)
+                local veh = GetVehiclePedIsUsing(current_ped or PlayerPedId())
+                if veh == 0 then
+                    return
+                end
+            
+                local vehNetID = getVehicleNetworkId(veh)
+                setHornState(veh, vehNetID)
             end
         end
     end        
@@ -218,14 +223,15 @@ AddEventHandler("els:setSceneLightState_c", function(sender)
     if player_s ~= -1 then 
         if DoesEntityExist(ped_s) and not IsEntityDead(ped_s) then
             if IsPedInAnyVehicle(ped_s, false) then
-                local veh = GetVehiclePedIsUsing(ped_s)
-                if(elsVehs[veh] == nil) then
+                local veh = GetVehiclePedIsUsing(current_ped or PlayerPedId())            
+                local vehNetID = getVehicleNetworkId(veh)
+                if(elsVehs[vehNetID] == nil) then
                     changeLightStage(0, 1, 1, 1)
                 end
-                if IsVehicleExtraTurnedOn(veh, 12) then
-                    setExtraState(veh, 12, 1)
+                if IsVehicleExtraTurnedOn(vehNetID, 12) then
+                    setExtraState(vehNetID, 12, 1)
                 else
-                    setExtraState(veh, 12, 0)
+                    setExtraState(vehNetID, 12, 0)
                 end
             end
         end
@@ -239,16 +245,16 @@ AddEventHandler("els:setCruiseLights_c", function(sender)
     if player_s ~= -1 then 
         if DoesEntityExist(ped_s) and not IsEntityDead(ped_s) then
             if IsPedInAnyVehicle(ped_s, false) then
-                local veh = GetVehiclePedIsUsing(ped_s)
-                if elsVehs[veh] ~= nil then
-                    if elsVehs[veh].cruise then
-                        elsVehs[veh].cruise = false
+                local vehNetID = getVehicleNetworkId()
+                if elsVehs[vehNetID] ~= nil then
+                    if elsVehs[vehNetID].cruise then
+                        elsVehs[vehNetID].cruise = false
                     else
-                        elsVehs[veh].cruise = true
+                        elsVehs[vehNetID].cruise = true
                     end
                 else
-                    elsVehs[veh] = {}
-                    elsVehs[veh].cruise = true
+                    elsVehs[vehNetID] = {}
+                    elsVehs[vehNetID].cruise = true
                 end
             end
         end
@@ -261,15 +267,16 @@ AddEventHandler("els:setTakedownState_c", function(sender)
     local ped_s = GetPlayerPed(player_s)
     if player_s ~= -1 then 
         if DoesEntityExist(ped_s) and not IsEntityDead(ped_s) then
-            if IsPedInAnyVehicle(ped_s, false) then
-                local veh = GetVehiclePedIsUsing(ped_s)
-                if(elsVehs[veh] == nil) then
+            if IsPedInAnyVehicle(ped_s, false) then            
+                local vehNetID = getVehicleNetworkId()
+
+                if(elsVehs[vehNetID] == nil) then
                     changeLightStage(0, 1, 1, 1)
                 end
-                if IsVehicleExtraTurnedOn(veh, 11) then
-                    setExtraState(veh, 11, 1)
+                if IsVehicleExtraTurnedOn(vehNetID, 11) then
+                    setExtraState(vehNetID, 11, 1)
                 else
-                    setExtraState(veh, 11, 0)
+                    setExtraState(vehNetID, 11, 0)
                 end
             end
         end
@@ -503,7 +510,10 @@ function changePrimaryPatternMath(way)
     if playButtonPressSounds then
         PlaySoundFrontend(-1, "NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET", 1)
     end
-    local primMax = getNumberOfPrimaryPatterns(GetVehiclePedIsUsing(GetPlayerPed(-1)))
+
+    local vehNetID = getVehicleNetworkId()
+
+    local primMax = getNumberOfPrimaryPatterns(vehNetID)
     local primMin = 1
     local temp = lightPatternPrim
 
@@ -527,7 +537,10 @@ function changeSecondaryPatternMath(way)
     if playButtonPressSounds then
         PlaySoundFrontend(-1, "NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET", 1)
     end
-    local primMax = getNumberOfSecondaryPatterns(GetVehiclePedIsUsing(GetPlayerPed(-1)))
+
+    local vehNetID = getVehicleNetworkId())
+
+    local primMax = getNumberOfSecondaryPatterns(vehNetID)
     local primMin = 1
     local temp = lightPatternSec
 
@@ -549,8 +562,10 @@ function changeAdvisorPatternMath(way)
     if playButtonPressSounds then
         PlaySoundFrontend(-1, "NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET", 1)
     end
+
+    local vehNetID = getVehicleNetworkId()
     
-    local primMax = getNumberOfAdvisorPatterns(GetVehiclePedIsUsing(GetPlayerPed(-1)))
+    local primMax = getNumberOfAdvisorPatterns(vehNetID)
 
     local primMin = 1
     local temp = advisorPatternSelectedIndex
@@ -573,9 +588,16 @@ function setSirenStateButton(state)
     if playButtonPressSounds then
         PlaySoundFrontend(-1, "NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET", 1)
     end
-    if m_siren_state[GetVehiclePedIsUsing(GetPlayerPed(-1))] ~= state then
+
+    local veh = GetVehiclePedIsUsing(current_ped or PlayerPedId())
+    if veh == 0 then
+        return
+    end
+
+    local vehNetID = NetworkGetNetworkIdFromEntity(veh)
+    if m_siren_state[vehNetID] ~= state then
         TriggerServerEvent("els:setSirenState_s", state)
-    elseif m_siren_state[GetVehiclePedIsUsing(GetPlayerPed(-1))] == state then
+    elseif m_siren_state[vehNetID] == state then
         TriggerServerEvent("els:setSirenState_s", 0)
     end
 end
@@ -584,7 +606,8 @@ function upOneStage()
     if playButtonPressSounds then
         PlaySoundFrontend(-1, "NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET", 1)
     end
-    local vehNetID = GetVehiclePedIsUsing(GetPlayerPed(-1))
+    
+    local vehNetID = getVehicleNetworkId()
 
     local newStage = 1
 
@@ -619,7 +642,8 @@ function downOneStage()
     if playButtonPressSounds then
         PlaySoundFrontend(-1, "NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET", 1)
     end
-    local vehNetID = GetVehiclePedIsUsing(GetPlayerPed(-1))
+
+    local vehNetID = getVehicleNetworkId()
 
     local newStage = 3
 
@@ -708,3 +732,12 @@ Citizen.CreateThread(function()
         Citizen.Wait(500)
     end
 end)
+
+function getVehicleNetworkId(ped)
+    local veh = GetVehiclePedIsUsing(ped or current_ped or PlayerPedId())
+    if veh == 0 then
+        return false
+    end
+
+    return NetworkGetNetworkIdFromEntity(veh)
+end
