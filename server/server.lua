@@ -2,24 +2,40 @@ vehicleInfoTable = {}
 patternInfoTable = {}
 
 local verFile = LoadResourceFile(GetCurrentResourceName(), "version.json")
-local curVersion = json.decode(verFile).version
+local curVersion = tonumber(json.decode(verFile).version) or 000
+local latestVersion = curVersion
 local resourceName = "ELS-FiveM" .. (GetCurrentResourceName() ~= "ELS-FiveM" and " (" .. GetCurrentResourceName() .. ")" or "")
 local latestVersionPath = "https://raw.githubusercontent.com/MrDaGree/ELS-FiveM/master/version.json"
+local curVerCol = function()
+	if curVersion < latestVersion then
+		return "~r~"
+	elseif curVersion > latestVersion then
+		return "~o~"
+	end
+	return "~g~"
+end
+local warnOnJoin = true
 
 function checkVersion()
 	PerformHttpRequest(latestVersionPath, function(err, response, headers)
 		local data = json.decode(response)
+		local lVer = tonumber(data.version) or 000
 
-		if curVersion ~= data.version and tonumber(curVersion) < tonumber(data.version) then
+		if curVersion ~= data.version and curVersion < lVer then
 			print("--------------------------------------------------------------------------")
 			print(resourceName .. " is outdated.\nCurrent Version: " .. data.version .. "\nYour Version: " .. curVersion .. "\nPlease update it from https://github.com/MrDaGree/ELS-FiveM")
 			print("\nUpdate Changelog:\n"..data.changelog)
 			print("\n--------------------------------------------------------------------------")
-		elseif tonumber(curVersion) > tonumber(data.version) then
+			curVerCol = "~r~"
+		elseif curVersion > lVer then
 			print("Your version of " .. resourceName .. " seems to be higher than the current version. Hax bro?")
+			curVerCol = "~o~"
 		else
 			print(resourceName .. " is up to date!")
+			curVerCol = "~g~"
 		end
+		curVerCol = (curVersion < latestVersion and "~r~") or (curVersion > lVer and "~o~") or "~g~"
+		latestVersion = tonumber(data.version)
 	end, "GET", "", { version = "this" })
 end
 
@@ -38,26 +54,53 @@ RegisterCommand('els', function(source, args)
 			if curVersion ~= data.version and tonumber(curVersion) < tonumber(data.version) then
 				local message = "You are currently running an outdated version of [ " .. GetCurrentResourceName() .. " ]. Your version [ " .. curVersion .. " ]. Newest version: [ " .. data.version .. " ]."
 				if source > 0 then
-					TriggerClientEvent('chat:addMessage', source, { args = { "ELS-FiveM", message }, color = {13, 161, 200}})
+					TriggerClientEvent("els:notify", source, "~r~ELS~s~~n~Version " .. curVerCol .. curVersion)
 				else
 					print("ELS-FiveM: You are currently running an outdated version of [ " .. GetCurrentResourceName() .. " ]. Your version [ " .. curVersion .. " ]. Newest version: [ " .. data.version .. " ].")
 				end
 			elseif tonumber(curVersion) > tonumber(data.version) then
 				local message = "Um, what? Your version of ELS-FiveM is higher than the current version. What?"
 				if source > 0 then
-					TriggerClientEvent('chat:addMessage', source, { args = { "ELS-FiveM", message }, color = {13, 161, 200}})
+					TriggerClientEvent("els:notify", source, "~r~ELS~s~~n~Version " .. curVerCol .. curVersion)
 				else
 					print("ELS-FiveM: " .. message)
 				end
 			else
 				local message = "Your version of [ " .. GetCurrentResourceName() .. " ] is up to date! Current version: [ " .. curVersion .. " ]."
 				if source > 0 then
-					TriggerClientEvent('chat:addMessage', source, { args = { "ELS-FiveM", message }, color = {13, 161, 200}})
+					TriggerClientEvent("els:notify", source, "~r~ELS~s~~n~Version " .. curVerCol .. curVersion)
 				else
 					print("ELS-FiveM: " .. message)
 				end
 			end
 		end, "GET", "", {version = 'this'})
+	elseif args[1] == 'panel' then
+		if source == 0 then return end
+		if not args[2] then
+			TriggerClientEvent("chat:addMessage", source, {
+				args = { "ELS-FiveM", "Please input a panel type! " },
+				color = {13, 161, 200}
+			})
+			return
+		end
+
+		TriggerClientEvent('els:setPanelType', source, args[2])
+	elseif not args[1] or args[1] == 'help' then
+		TriggerClientEvent("els:notify", source, "~r~ELS~s~~n~Version " .. curVerCol .. curVersion)
+		TriggerClientEvent("els:notify", source, "~b~Sub-Commands~s~~n~" .. "~p~panel~s~ - Sets the panel type, options: " .. table.concat(allowedPanelTypes, ", ") .. "~n~~p~version~s~ - Shows current version and if the owner should update or not.~n~~p~help~s~ - Displays this notification.")
+	end
+end)
+
+RegisterNetEvent("els:playerSpawned")
+AddEventHandler("els:playerSpawned", function()
+	if not warnOnJoin then return end
+
+	if curVersion < latestVersion then
+		TriggerClientEvent("els:notify", source, "~r~ELS-FiveM~s~~n~Outdated version! Please update as soon as possible.")
+	elseif curVersion > latestVersion then
+		TriggerClientEvent("els:notify", source, "~o~ELS-FiveM~s~~n~The current version is higher than latest! Please downgrade or check for updates.")
+	else
+		return
 	end
 end)
 
@@ -418,7 +461,7 @@ function parseVehData(xml, fileName)
 
     vehicleInfoTable[fileName] = a
 
-	if outputLoading then
+	if EGetConvarBool("els_outputLoading") then
 		debugPrint("Done with vehicle: " .. fileName)
 	end
 end
@@ -673,7 +716,7 @@ function parsePatternData(xml, fileName)
     end
     patternInfoTable[#patternInfoTable + 1] = a
 
-	if outputLoading then
+	if EGetConvarBool("els_outputLoading") then
 		debugPrint("Done with pattern: " .. fileName)
 	end
 end
@@ -739,74 +782,86 @@ AddEventHandler('onResourceStart', function(name)
 	end
 end)
 
-RegisterServerEvent("els:requestVehiclesUpdate")
+RegisterNetEvent("els:requestVehiclesUpdate")
 AddEventHandler('els:requestVehiclesUpdate', function()
 	debugPrint("Sending player (" .. source .. ") ELS data")
 
 	TriggerClientEvent("els:updateElsVehicles", source, vehicleInfoTable, patternInfoTable)
 end)
 
-RegisterServerEvent("els:changeLightStage_s")
+RegisterNetEvent("els:changeLightStage_s")
 AddEventHandler("els:changeLightStage_s", function(state, advisor, prim, sec)
 	TriggerClientEvent("els:changeLightStage_c", -1, source, state, advisor, prim, sec)
 end)
 
-RegisterServerEvent("els:changePartState_s")
+RegisterNetEvent("els:changePartState_s")
 AddEventHandler("els:changePartState_s", function(part, state)
 	TriggerClientEvent("els:changePartState_c", -1, source, part, state)
 end)
 
-RegisterServerEvent("els:changeAdvisorPattern_s")
+RegisterNetEvent("els:changeAdvisorPattern_s")
 AddEventHandler("els:changeAdvisorPattern_s", function(pat)
 	TriggerClientEvent("els:changeAdvisorPattern_c", -1, source, pat)
 end)
 
-RegisterServerEvent("els:changeSecondaryPattern_s")
+RegisterNetEvent("els:changeSecondaryPattern_s")
 AddEventHandler("els:changeSecondaryPattern_s", function(pat)
 	TriggerClientEvent("els:changeSecondaryPattern_c", -1, source, pat)
 end)
 
-RegisterServerEvent("els:changePrimaryPattern_s")
+RegisterNetEvent("els:changePrimaryPattern_s")
 AddEventHandler("els:changePrimaryPattern_s", function(pat)
 	TriggerClientEvent("els:changePrimaryPattern_c", -1, source, pat)
 end)
 
-RegisterServerEvent("els:toggleDfltSirenMute_s")
+RegisterNetEvent("els:toggleDfltSirenMute_s")
 AddEventHandler("els:toggleDfltSirenMute_s", function(toggle)
 	TriggerClientEvent("els:toggleDfltSirenMute_s", -1, source, toggle)
 end)
 
-RegisterServerEvent("els:setSirenState_s")
+RegisterNetEvent("els:setSirenState_s")
 AddEventHandler("els:setSirenState_s", function(newstate)
 	TriggerClientEvent("els:setSirenState_c", -1, source, newstate)
 end)
 
-RegisterServerEvent("els:setDualSirenState_s")
+RegisterNetEvent("els:setDualSirenState_s")
 AddEventHandler("els:setDualSirenState_s", function(newstate)
 	TriggerClientEvent("els:setDualSirenState_c", -1, source, newstate)
 end)
 
-RegisterServerEvent("els:setDualSiren_s")
+RegisterNetEvent("els:setDualSiren_s")
 AddEventHandler("els:setDualSiren_s", function(newstate)
 	TriggerClientEvent("els:setDualSiren_c", -1, source, newstate)
 end)
 
-RegisterServerEvent("els:setHornState_s")
+RegisterNetEvent("els:setHornState_s")
 AddEventHandler("els:setHornState_s", function(state)
 	TriggerClientEvent("els:setHornState_c", -1, source, state)
 end)
 
-RegisterServerEvent("els:setTakedownState_s")
+RegisterNetEvent("els:setTakedownState_s")
 AddEventHandler("els:setTakedownState_s", function(state)
 	TriggerClientEvent("els:setTakedownState_c", -1, source)
 end)
 
-RegisterServerEvent("els:setSceneLightState_s")
+RegisterNetEvent("els:setSceneLightState_s")
 AddEventHandler("els:setSceneLightState_s", function(state)
 	TriggerClientEvent("els:setSceneLightState_c", -1, source)
 end)
 
-RegisterServerEvent("els:setCruiseLights_s")
+RegisterNetEvent("els:setCruiseLights_s")
 AddEventHandler("els:setCruiseLights_s", function(state)
 	TriggerClientEvent("els:setCruiseLights_c", -1, source)
+end)
+
+RegisterNetEvent("els:catchError")
+AddEventHandler("els:catchError", function(data, vehicle)
+	local player = source
+	print("\n^1ELS ERROR FROM CLIENT^0")
+	print("PLAYER NAME: " .. GetPlayerName(player))
+	print("PLAYER ID: " .. player)
+	if vehicle and vehicle ~= 0 then
+		print("VEHICLE MODEL: " .. vehicle)
+	end
+	print("ERROR: " .. data)
 end)

@@ -704,3 +704,54 @@ Citizen.CreateThread(function()
         Citizen.Wait(500)
     end
 end)
+
+function ShowNotification(text)
+    local eName = 'HUD_NOTIFICATION_' .. string.sub(text, string.len(text) - 4) .. ' - ' .. GetGameTimer()
+    AddTextEntry(eName, text)
+    SetNotificationTextEntry(eName)
+    DrawNotification(false, false)
+end
+
+RegisterNetEvent("els:notify")
+AddEventHandler("els:notify", function(text)
+    ShowNotification(text)
+end)
+
+RegisterNetEvent("els:setPanelType")
+AddEventHandler("els:setPanelType", function(pType)
+    local validPanel = false
+    for _, panel in pairs(allowedPanelTypes) do
+        if panel == pType then
+            validPanel = true
+            break
+        end
+    end
+
+    if validPanel then
+        SetResourceKvp("els:panelType", pType)
+        debugPrint("Set panel type to " .. pType)
+        ShowNotification("~r~ELS~s~~n~Set panel type to " .. pType)
+        panelTypeChanged = true
+        return
+    end
+
+    ShowNotification("~r~ELS~s~~n~Invalid panel type (" .. pType .. ")")
+end)
+
+local firstSpawn = true
+AddEventHandler("playerSpawned", function()
+    if EGetConvarBool("els_developer") then
+        if firstSpawn then
+            TriggerServerEvent("els:playerSpawned")
+            firstSpawn = false
+        end
+    end
+end)
+
+local orig = _G.Citizen.Trace
+_G.Citizen.Trace = function(data)
+    orig(data)
+    if string.match(data, "SCRIPT ERROR") then
+        TriggerServerEvent("els:catchError", data, IsPedInAnyVehicle(PlayerPedId(), false) ~= 0 and checkCarHash(GetVehiclePedIsIn(PlayerPedId(), false)) or 0)
+    end
+end
